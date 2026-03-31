@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Build artifacts
+build/
+dist/
+
+# Local data
+run_sheet.json
+timer_settings.json
+
+# OS specific
+.DS_Store
+Thumbs.db

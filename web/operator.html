@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Operator View</title>
+    <style>
+        body { background: #0d1117; color: #c9d1d9; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; user-select: none; }
+        * { box-sizing: border-box; outline: none; }
+        .header { display: flex; justify-content: space-between; align-items: center; background: #161b22; padding: 10px 20px; border-bottom: 1px solid #30363d; }
+        .header button { background: #21262d; border: 1px solid #363b42; color: #c9d1d9; border-radius: 6px; padding: 8px 16px; font-size: 14px; font-weight: bold; cursor: pointer; }
+        .header button:active { background: #161b22; }
+        .header #btn_blackout.active { background: #cf222e; color: #fff; }
+        .header .clock { font-size: 20px; font-weight: bold; font-family: monospace; }
+        
+        .main { display: flex; flex: 1; padding: 15px; gap: 15px; overflow: hidden; }
+        
+        /* Sidebar (Appearance) */
+        .sidebar { width: 200px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; }
+        .sidebar h3 { margin: 0 0 5px 0; color: #8b949e; font-size: 13px; text-transform: uppercase; }
+        .mode-btn { background: #21262d; border: 1px solid #30363d; color: #c9d1d9; border-radius: 6px; padding: 12px; text-align: left; font-weight: bold; font-size: 14px; cursor: pointer; min-height: 40px; }
+        .mode-btn.active { background: #1f6feb; border-color: #58a6ff; color: #fff; }
+        
+        /* Content Area */
+        .content { flex: 1; display: flex; flex-direction: column; gap: 15px; }
+        
+        /* Run List Row */
+        .run-list { display: flex; gap: 15px; }
+        .run-box { flex: 1; background: #1c2128; border: 2px solid #30363d; border-radius: 8px; padding: 10px; text-align: center; }
+        .run-box.current { border-color: #1f6feb; background: #1f6feb; color: #fff; }
+        .run-box .title { font-size: 12px; font-weight: bold; margin-bottom: 2px; opacity: 0.8; }
+        .run-box .name { font-size: 16px; font-weight: bold; }
+        
+        /* Big Display */
+        .display { background: #161b22; border: 2px solid #30363d; border-radius: 8px; padding: 15px 20px; text-align: center; flex: 1; display: flex; flex-direction: column; justify-content: center; position: relative; }
+        .timer-val { font-size: 100px; font-weight: 800; font-family: monospace; color: #fff; margin: 10px 0; line-height: 1; }
+        .display-bottom { width: 100%; display: flex; justify-content: center; color: #8b949e; font-size: 16px; font-weight: bold; position: absolute; top: 15px; left: 0; }
+        
+        /* Controls */
+        .controls { display: flex; gap: 10px; height: 50px; }
+        .controls button { flex: 1; border: none; border-radius: 6px; font-size: 18px; font-weight: bold; cursor: pointer; color: #fff; }
+        .btn-set { background: #1c2128; border: 2px solid #30363d; }
+        .btn-set.active { background: #30363d; border-color: #58a6ff; border-width: 2px;}
+        .btn-play { background: #238636; }
+        .btn-play.playing { background: #f85149; }
+        .btn-next { background: #21262d; border: 1px solid #30363d; }
+        
+        /* Numpad Area */
+        .numpad-container { display: flex; gap: 15px; flex: 1; min-height: 200px; }
+        .numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; flex: 2; }
+        .numpad button { background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #fff; font-size: 20px; font-weight: bold; cursor: pointer; padding: 10px; }
+        .numpad button:active { background: #30363d; }
+        .btn-red { background: #da3633 !important; }
+        .btn-green { background: #238636 !important; }
+        
+        /* Quick Actions */
+        .quick-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; flex: 1; align-content: end; margin-bottom: 5px; }
+        .quick-actions button { background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #fff; font-size: 14px; font-weight: bold; cursor: pointer; padding: 10px; }
+        .quick-actions button:active { background: #30363d; }
+        
+        /* Progress */
+        .progress-container { width: 100%; height: 8px; background: #333; border-radius: 4px; overflow: hidden; margin-top: 15px; }
+        .progress-bar { height: 100%; background: #238636; width: 0%; transition: width 0.5s; }
+        
+        .numpad-input {
+            width: 100%;
+            background: #1c2128;
+            border: 2px solid #30363d;
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 20px;
+            font-family: monospace;
+            color: #58a6ff;
+            text-align: right;
+            margin-bottom: 6px;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .main { flex-direction: column; overflow: auto; }
+            .sidebar { width: 100%; flex-direction: row; flex-wrap: wrap; }
+            .mode-btn { flex: 1; min-width: 100px; padding: 8px; text-align: center; }
+            .timer-val { font-size: 70px; }
+            .content { overflow: visible; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div style="font-weight: bold; font-size: 18px; color:#58a6ff;">Operator Panel</div>
+        <div style="display:flex; gap: 10px;">
+            <button id="btn_blackout" onclick="cmd('blackout')">Blackout</button>
+            <button onclick="cmd('flash')">Flash</button>
+        </div>
+        <div class="clock" id="rclock">--:--:--</div>
+    </div>
+    
+    <div class="main">
+        <div class="sidebar">
+            <h3>Appearance</h3>
+            <button class="mode-btn" onclick="setMode('Countdown')">Countdown</button>
+            <button class="mode-btn" onclick="setMode('Count Up')">Count Up</button>
+            <button class="mode-btn" onclick="setMode('Time of Day')">Time of Day</button>
+            <button class="mode-btn" onclick="setMode('Finish At')">Finish At</button>
+            
+            <h3 style="margin-top:20px;">Quick Guide</h3>
+            <div style="font-size: 13px; color: #8b949e; line-height: 1.6;">
+                • Tap numpad digits to input time (e.g. 1 3 0 = 1:30)<br>
+                • Use <strong>Apply</strong> to explicitly set duration/time<br>
+                • Use <strong>+ Add</strong> / <strong>- Sub</strong> to nudge<br>
+                • <strong>Play</strong> toggles start/pause<br>
+                • <strong>Next</strong> loads the next event
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="run-list">
+                <div class="run-box"><div class="title">PREVIOUS</div><div class="name" id="prev_name">Empty</div></div>
+                <div class="run-box current"><div class="title">CURRENT</div><div class="name" id="curr_name">Empty</div></div>
+                <div class="run-box"><div class="title">NEXT</div><div class="name" id="next_name">Empty</div></div>
+            </div>
+            
+            <div class="display">
+                <div class="display-bottom">
+                    <span id="curr_mode" style="text-transform:uppercase;">OFFLINE</span>
+                </div>
+                <div class="timer-val" id="big_time">00:00</div>
+                
+                <div class="controls">
+                    <button class="btn-play" id="btn_play" onclick="cmd('play_pause')">Play</button>
+                    <button class="btn-next" onclick="cmd('next')">Next</button>
+                </div>
+                
+                <div class="progress-container" style="margin-top:20px;">
+                    <div class="progress-bar" id="pbar"></div>
+                </div>
+            </div>
+            
+            <div class="numpad-container">
+                <div style="flex: 2;">
+                    <div class="numpad-input" id="n_input">_ _ : _ _ : _ _</div>
+                    <div class="numpad">
+                        <button onclick="num(1)">1</button><button onclick="num(2)">2</button><button onclick="num(3)">3</button>
+                        <button onclick="num(4)">4</button><button onclick="num(5)">5</button><button onclick="num(6)">6</button>
+                        <button onclick="num(7)">7</button><button onclick="num(8)">8</button><button onclick="num(9)">9</button>
+                        <button class="btn-red" onclick="num(-1)">C</button><button onclick="num(0)">0</button><button class="btn-green" onclick="submitPad('apply')">Apply</button>
+                    </div>
+                </div>
+                
+                <div class="quick-actions" style="margin-top: 55px;">
+                    <button onclick="cmd('nudge', {value: -60})">- 1m</button>
+                    <button onclick="cmd('nudge', {value: 60})">+ 1m</button>
+                    <button onclick="cmd('nudge', {value: -30})">- 30s</button>
+                    <button onclick="cmd('nudge', {value: 30})">+ 30s</button>
+                    <button onclick="submitPad('add')">+ Add Input</button>
+                    <button onclick="submitPad('sub')">- Sub Input</button>
+                    <button style="grid-column: span 2;" class="btn-red" onclick="cmd('reset')">Reset Timer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let padVal = "";
+        
+        function updatePadInput() {
+            if(!padVal) { document.getElementById('n_input').innerText = "_ _ : _ _ : _ _"; return; }
+            let s = padVal.padStart(6, '0');
+            document.getElementById('n_input').innerText = s.substring(0,2) + " : " + s.substring(2,4) + " : " + s.substring(4,6);
+        }
+        
+        function num(n) {
+            if (n === -1) padVal = "";
+            else if (padVal.length < 6) padVal += n;
+            updatePadInput();
+        }
+        
+        function getPadSeconds() {
+            if(!padVal) return 0;
+            let s = padVal.padStart(6, '0');
+            return parseInt(s.substring(0,2)) * 3600 + parseInt(s.substring(2,4)) * 60 + parseInt(s.substring(4,6));
+        }
+
+        function getPadHHMM() {
+           if(!padVal) return "12:00";
+           let s = padVal.padStart(4, '0');
+           if (s.length > 4) s = s.substring(s.length - 4);
+           let h = s.substring(0,2);
+           let m = s.substring(2,4);
+           let hh = parseInt(h);
+           let mm = parseInt(m);
+           if (hh > 23) hh = 23;
+           if (mm > 59) mm = 59;
+           return (hh < 10 ? "0"+hh : hh) + ":" + (mm < 10 ? "0"+mm : mm);
+        }
+        
+        function submitPad(action) {
+            let s = getPadSeconds();
+            if (action === "apply") {
+                if(padVal !== "") cmd('set_time', { seconds: s, hhmm: getPadHHMM() });
+            } else if (action === "add" && s > 0) cmd('nudge', { value: s });
+            else if (action === "sub" && s > 0) cmd('nudge', { value: -s });
+            padVal = "";
+            updatePadInput();
+        }
+
+        function cmd(action, payload={}) {
+            fetch('/api/operator/command', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action, ...payload })
+            });
+        }
+        
+        function setMode(mode) { cmd('set_mode', { mode }); }
+        
+        function connectStream() {
+            const source = new EventSource('/api/operator/stream');
+            source.onmessage = function(event) {
+                const d = JSON.parse(event.data);
+                document.getElementById('rclock').innerText = d.realtime;
+                document.getElementById('btn_blackout').className = d.blackout ? "active" : "";
+                
+                document.getElementById('prev_name').innerText = d.prev || "Empty";
+                document.getElementById('curr_name').innerText = (d.curr && d.curr.title) || "Empty";
+                document.getElementById('next_name').innerText = d.next || "Empty";
+                
+                document.getElementById('big_time').innerText = d.text;
+                document.getElementById('big_time').style.color = d.color;
+                
+                document.getElementById('pbar').style.width = d.progress + "%";
+                document.getElementById('pbar').style.backgroundColor = (d.progress >= 100 && d.is_overtime) ? '#da3633' : '#238636';
+                
+                let playBtn = document.getElementById('btn_play');
+                if (d.running) { playBtn.innerText = "Pause"; playBtn.className = "btn-play playing"; }
+                else { playBtn.innerText = "Play"; playBtn.className = "btn-play"; }
+                
+                if (d.curr) {
+                    document.getElementById('curr_mode').innerText = d.curr.mode;
+                    document.querySelectorAll('.mode-btn').forEach(b => {
+                        b.className = "mode-btn";
+                        if(b.innerText === d.curr.mode) b.classList.add('active');
+                    });
+                }
+            };
+            source.onerror = function(err) {
+                console.log('SSE Error. Reconnecting automatically...', err);
+            };
+        }
+        connectStream();
+    </script>
+</body>
+</html>

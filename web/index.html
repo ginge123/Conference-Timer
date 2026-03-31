@@ -1,0 +1,94 @@
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+                <title>Timer Web Viewer</title>
+                <style>
+                    body, html { margin: 0; padding: 0; height: 100%; background: #000; color: #fff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
+                    #container { display: flex; flex-direction: column; height: 100%; justify-content: center; align-items: center; position: relative; }
+                    #banner { display: flex; justify-content: space-between; align-items: center; position: absolute; top: 5vh; left: 5vw; width: 90vw; height: 12vh; }
+                    #corner-logo { flex: 1; display: flex; justify-content: flex-start; align-items: center; height: 100%; }
+                    #corner-logo img { max-height: 100%; max-width: 100%; object-fit: contain; }
+                    #header { flex: 2; font-size: 8vh; color: #58a6ff; font-weight: bold; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 0; }
+                    #corner-clock { flex: 1; display: flex; justify-content: flex-end; align-items: center; font-size: 5vh; font-weight: bold; }
+                    #time { font-size: 45vh; font-weight: 800; text-align: center; line-height: 1; }
+                    #message { display: none; position: absolute; bottom: 10%; width: 80%; background: rgba(20,20,20,0.95); color: #f6e05e; border: 2px solid #f6e05e; border-radius: 15px; padding: 15px; text-align: center; font-size: 6vh; font-weight: bold; }
+                    #progress-container { position: absolute; bottom: 0; left: 0; width: 100%; height: 2vh; background: #333; }
+                    #progress-bar { height: 100%; background: #48bb78; width: 0%; transition: width 0.5s; }
+                    #blackout { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 10; }
+                    #flash { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 11; }
+                </style>
+            </head>
+            <body>
+                <div id="container">
+                    <div id="banner">
+                        <div id="corner-logo"><img id="logo-img" style="display:none;" /></div>
+                        <div id="header">Ready</div>
+                        <div id="corner-clock"></div>
+                    </div>
+                    <div id="time">00:00</div>
+                    <div id="message"></div>
+                </div>
+                <div id="progress-container"><div id="progress-bar"></div></div>
+                <div id="blackout"></div>
+                <div id="flash"></div>
+
+                <script>
+                    const logoImg = document.getElementById('logo-img');
+                    logoImg.onerror = function() { this.style.display = 'none'; };
+                
+                    function connectStream() {
+                        const source = new EventSource('/api/stream');
+                        source.onmessage = function(event) {
+                            const d = JSON.parse(event.data);
+                            document.body.style.backgroundColor = d.bg_color;
+                            
+                            document.getElementById('header').innerText = d.header;
+                            document.getElementById('header').style.color = d.header_color;
+                            
+                            const clock = document.getElementById('corner-clock');
+                            clock.innerText = d.clock_text;
+                            clock.style.color = d.header_color;
+                            clock.style.display = d.show_clock ? 'flex' : 'none';
+                            
+                            if (d.show_logo) {
+                                logoImg.src = '/api/logo?t=' + Math.floor(Date.now() / 10000);
+                                logoImg.style.display = 'block';
+                            } else {
+                                logoImg.style.display = 'none';
+                            }
+                            
+                            document.getElementById('time').innerText = d.text;
+                            document.getElementById('time').style.color = d.color;
+                            document.getElementById('progress-bar').style.width = d.progress + '%';
+                            document.getElementById('progress-bar').style.backgroundColor = d.progress >= 100 && parseInt(d.text.split(':')[0]) !== 0 ? '#da3633' : (d.progress_color || '#238636');
+                            
+                            const msg = document.getElementById('message');
+                            if(d.message_visible) { msg.innerText = d.message; msg.style.display = 'block'; }
+                            else { msg.style.display = 'none'; }
+                            msg.style.color = d.message_color || '#f6e05e';
+                            msg.style.borderColor = d.message_color || '#f6e05e';
+                            
+                            let align = d.timer_alignment || 'Center';
+                            let justify = align === 'Left' ? 'flex-start' : (align === 'Right' ? 'flex-end' : 'center');
+                            let txAlign = align === 'Left' ? 'left' : (align === 'Right' ? 'right' : 'center');
+                            document.getElementById('container').style.alignItems = justify;
+                            document.getElementById('time').style.textAlign = txAlign;
+                            
+                            let weightMap = {'Normal': 'normal', 'Bold': 'bold', 'Black': '900'};
+                            document.getElementById('time').style.fontWeight = weightMap[d.font_weight || 'Bold'];
+                            document.getElementById('header').style.fontWeight = weightMap[d.font_weight || 'Bold'];
+                            clock.style.fontWeight = weightMap[d.font_weight || 'Bold'];
+
+                            document.getElementById('blackout').style.display = d.blackout ? 'block' : 'none';
+                            document.getElementById('flash').style.display = d.flash ? 'block' : 'none';
+                        };
+                        source.onerror = function(err) {
+                            console.log('SSE Error. Reconnecting automatically...', err);
+                        };
+                    }
+                    connectStream();
+                </script>
+            </body>
+            </html>
