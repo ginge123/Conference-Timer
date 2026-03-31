@@ -318,10 +318,11 @@ DEFAULT_SETTINGS = {
 class AspectRatioWidget(QWidget):
     def __init__(self, widget, ratio=16/9, parent=None):
         super().__init__(parent)
+        self.setObjectName("PreviewWrapper")
         self.widget = widget
         self.widget.setParent(self)
         self.ratio = ratio
-        self.setStyleSheet("background-color: #000000; border: 2px solid #444;") 
+        self.setStyleSheet("#PreviewWrapper { background-color: #000000; border: 2px solid #444; }") 
 
     def resizeEvent(self, event):
         w = self.width()
@@ -763,7 +764,11 @@ class TimerDisplay(QWidget):
 
     def apply_design(self):
         self.setObjectName("TimerDisplayScreen")
-        bg_style = f"#TimerDisplayScreen {{ background-color: {self.settings['bg_color']}; }}"
+        bg_style = f"""
+            #TimerDisplayScreen {{ background-color: {self.settings['bg_color']}; }}
+            #TimerDisplayScreen QWidget {{ background-color: transparent; border: none; }}
+            #TimerDisplayScreen QLabel {{ background-color: transparent; border: none; }}
+        """
         self.setStyleSheet(bg_style)
         
         self.banner_frame.setObjectName("BannerFrame")
@@ -1904,6 +1909,14 @@ class ControllerWindow(QMainWindow):
         self.web_server.wait()
         self.projector.close()
         super().closeEvent(event)
+
+def get_resource_path(relative_path):
+    import sys, os
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(os.path.dirname(__file__))
+    return os.path.join(base_path, relative_path)
 
 def main():
     app = QApplication(sys.argv)
