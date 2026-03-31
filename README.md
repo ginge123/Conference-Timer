@@ -1,7 +1,6 @@
 # David's Timer
-> *Refusing to pay for stagetimer since 2018*
 
-David's Timer is a professional, highly customizable broadcast and stage timer application built in Python and PyQt6. Designed for live events, conferences, and studio broadcast environments, it provides a feature-rich control interface for managing presentation timings alongside a clean, distraction-free output intended for stage displays, confidence monitors, or projectors.
+This Timer is a professional, highly customizable broadcast and stage timer application built in Python and PyQt6. Designed for live events, conferences, and studio broadcast environments, it provides a feature-rich control interface for managing presentation timings alongside a clean, distraction-free output intended for stage displays, confidence monitors, or projectors.
 
 ## Key Features
 
